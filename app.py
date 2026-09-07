@@ -33,13 +33,10 @@ async def predict(file: UploadFile = File(...), x_api_key: str = Header(default=
     results = model.predict(image, verbose=False)
     r = results[0]
 
-    if len(r.boxes) == 0:
-        return {"label": None, "confidence": 0.0}
-
-    confidences = r.boxes.conf.tolist()
-    class_ids = r.boxes.cls.tolist()
-    best_idx = confidences.index(max(confidences))
-    label = model.names[int(class_ids[best_idx])]      # e.g. "Plastic", "Glass", "Waste"...
-    confidence = round(confidences[best_idx], 4)
+    # Classification models return probabilities per class (r.probs),
+    # not bounding boxes (r.boxes) like the old detection model did.
+    top1_index = r.probs.top1
+    confidence = round(r.probs.top1conf.item(), 4)
+    label = model.names[top1_index]
 
     return {"label": label, "confidence": confidence}
